@@ -1,11 +1,12 @@
 import logging
 import asyncio
 import os
-from aiogram import Bot, Dispatcher, types, F
+from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dotenv import load_dotenv
+from PIL import Image
 
 load_dotenv()
 API_TOKEN = os.getenv('BOT_TOKEN')
@@ -69,8 +70,18 @@ async def demotivator_menu(callback: CallbackQuery):
 async def handle_photo(message: Message):
     state = user_state.get(message.from_user.id)
     if state == "awaiting_classify_photo":
-        await message.answer('"здесь будет ответ с бэкенда"', reply_markup=main_menu_kb.as_markup())
+        photo = message.photo[-1]
+        file = await bot.get_file(photo.file_id)
+        photo_bytes = await bot.download_file(file.file_path)  # Это BytesIO объект
+        image = Image.open(photo_bytes)
+        try:
+            transformed = prepare_photo(image)
+            await message.answer("Фото успешно обработано!")
+        except Exception as e:
+            await message.answer(f"Ошибка обработки фото: {str(e)}")
+        await message.answer('"Выберите действие"', reply_markup=main_menu_kb.as_markup())
         user_state[message.from_user.id] = None
+
     elif state == "awaiting_text_photo":
         await message.answer('"здесь будет ответ с бэкенда"', reply_markup=main_menu_kb.as_markup())
         user_state[message.from_user.id] = None
