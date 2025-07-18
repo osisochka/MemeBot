@@ -7,6 +7,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dotenv import load_dotenv
 from PIL import Image
+from scripts.google_drive_config import download_file_from_google_drive
 
 load_dotenv()
 API_TOKEN = os.getenv('BOT_TOKEN')
@@ -81,7 +82,7 @@ async def handle_photo(message: Message):
             await message.answer(f"Ошибка обработки фото: {str(e)}")
         await message.answer('"Выберите действие"', reply_markup=main_menu_kb.as_markup())
         user_state[message.from_user.id] = None
-
+        #TODO
     elif state == "awaiting_text_photo":
         await message.answer('"здесь будет ответ с бэкенда"', reply_markup=main_menu_kb.as_markup())
         user_state[message.from_user.id] = None
@@ -97,3 +98,9 @@ async def fallback(message: Message):
 
 if __name__ == "__main__":
     asyncio.run(dp.start_polling(bot))
+    os.makedirs("data/res", exist_ok=True)
+    os.makedirs("data/vit", exist_ok=True)
+    os.makedirs("data/eff", exist_ok=True)
+    download_file_from_google_drive('1iEeVgqdW8EDHIjWH2PCafN6RUfn33GY6', 'data/res/resnet.pth')
+    download_file_from_google_drive('1FiVleuMFxqRwFW3OTza8LkDvdc64d-im', 'data/vit/vit.pth')
+    download_file_from_google_drive('1qcnAEaunGPpLmsvfK8-u4uzNAGHk9UHj', 'data/eff/efficientnet.pth')
