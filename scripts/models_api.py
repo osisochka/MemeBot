@@ -26,11 +26,15 @@ def get_answer(prediction):
 def predict(model, photo):
     if model == 'resnet':
         model = ResNet()
+        path = 'data/res/best_weight.pht'
     elif model == 'efficientnet':
         model = EffModel()
+        path = 'data/eff/best_weight.pht'
     elif model == 'vit':
         model = VITModel()
+        path = 'data/vit/best_weight.pht'
 
+    model.load(path)
     picture = prepare_photo(photo)
 
     return get_answer(model.forward(picture))
