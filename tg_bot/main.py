@@ -6,8 +6,8 @@ from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dotenv import load_dotenv
-from PIL import Image
 from scripts.google_drive_config import download_file_from_google_drive
+from scripts.models_api import predict, get_answer
 
 load_dotenv()
 API_TOKEN = os.getenv('BOT_TOKEN')
@@ -71,23 +71,33 @@ async def demotivator_menu(callback: CallbackQuery):
 async def handle_photo(message: Message):
     state = user_state.get(message.from_user.id)
     if state == "awaiting_classify_photo":
-        photo = message.photo[-1]
-        file = await bot.get_file(photo.file_id)
-        photo_bytes = await bot.download_file(file.file_path)  # Это BytesIO объект
-        image = Image.open(photo_bytes)
         try:
-            transformed = prepare_photo(image)
+            photo = message.photo[-1]
+            file = await bot.get_file(photo.file_id)
+            model = user_model.get(message.from_user.id)
+            prediction = predict(model, file)
+            answer = get_answer(prediction)
+
+            await message.answer(answer)
             await message.answer("Фото успешно обработано!")
+
         except Exception as e:
             await message.answer(f"Ошибка обработки фото: {str(e)}")
-        await message.answer('"Выберите действие"', reply_markup=main_menu_kb.as_markup())
-        user_state[message.from_user.id] = None
-        #TODO
+
+        finally:
+            await message.answer("Выберите действие", reply_markup=main_menu_kb.as_markup())
+            user_state[message.from_user.id] = None
     elif state == "awaiting_text_photo":
         await message.answer('"здесь будет ответ с бэкенда"', reply_markup=main_menu_kb.as_markup())
         user_state[message.from_user.id] = None
     elif state == "awaiting_demotivator_photo":
-        await message.answer('"здесь будет ответ с бэкенда"', reply_markup=main_menu_kb.as_markup())
+        photo = message.photo[-1]
+        file = await bot.get_file(photo.file_id)
+        photo_bytes = (await bot.download_file(file.file_path)).read()
+        await message.answer("Отправьте текст для демотиватора")
+        await state.set_state("waiting_for_demotivator_text")
+        await state.update_data(photo_bytes=photo_bytes)
+        await message.answer('"Выберите действие"', reply_markup=main_menu_kb.as_markup())
         user_state[message.from_user.id] = None
     else:
         await message.answer("Пожалуйста, выберите действие в главном меню.", reply_markup=main_menu_kb.as_markup())
